@@ -20,6 +20,7 @@ struct Buku
   string judul;
   string penulis;
   int tahun;
+  bool statusPeminjaman = false;
   Buku *next;
   Buku *prev;
 };
@@ -285,7 +286,7 @@ void tampilkanStatusBuku(Buku *buku)
     cout << "Judul: " << buku->judul << endl;
     cout << "Penulis: " << buku->penulis << endl;
     cout << "Tahun: " << buku->tahun << endl;
-    string status = statusPeminjaman[buku->judul] ? "Tidak Tersedia (Dipinjam)" : "Tersedia";
+    string status = statusPeminjaman[buku->judul] ? "Dipinjam" : "Tersedia";
     cout << "Status: " << status << endl;
   }
   else
@@ -326,7 +327,33 @@ Peminjam *linearProbingSearchPeminjam(Peminjam *table[], const string &noHandpho
   }
   return nullptr;
 }
+bool linearProbingDeletePeminjam(Peminjam *table[], const string &noHandphone)
+{
+  int index = hashFunction(noHandphone, MAX_PEMINJAM);
+  for (int i = 0; i < MAX_PEMINJAM; ++i)
+  {
+    int probingIndex = (index + i) % MAX_PEMINJAM;
+    if (table[probingIndex] == nullptr)
+    {
+      return false; // Tidak ditemukan
+    }
+    if (table[probingIndex]->noHandphone == noHandphone)
+    {
+      delete table[probingIndex]; // Hapus peminjam
+      table[probingIndex] = nullptr;
+      return true;
+    }
+  }
+  return false;
+}
 
+void hapusPeminjam(const string &noHandphone)
+{
+  if (!linearProbingDeletePeminjam(tablePeminjam, noHandphone))
+  {
+    cout << "Peminjam dengan nomor handphone " << noHandphone << " tidak ditemukan." << endl;
+  }
+}
 void tampilkanDataPeminjam(const string &noHandphone)
 {
   Peminjam *peminjamDitemukan = linearProbingSearchPeminjam(tablePeminjam, noHandphone);
@@ -392,6 +419,7 @@ void pinjamBuku()
     tambahPeminjam(nama, noHandphone);
 
     statusPeminjaman[judulBuku] = true;
+    
     peminjamBuku[judulBuku] = {nama, noHandphone};
 
     cout << "Buku berhasil dipinjam." << endl;
@@ -403,6 +431,30 @@ void pinjamBuku()
   else
   {
     cout << "Buku sedang dipinjam." << endl;
+  }
+}
+void kembalikanBuku()
+{
+  string judulBuku;
+  cout << "Masukkan Judul Buku yang ingin dikembalikan: ";
+  cin.ignore();
+  getline(cin, judulBuku);
+  Buku *bukuDitemukan = cariBuku(judulBuku);
+  if (bukuDitemukan != nullptr && statusPeminjaman[judulBuku])
+  {
+    string noHandphone = peminjamBuku[judulBuku].noHandphone;
+    hapusPeminjam(noHandphone);
+    peminjamBuku.erase(judulBuku);
+    statusPeminjaman[judulBuku] = false;
+    cout << "Buku berhasil dikembalikan." << endl;
+  }
+  else if (bukuDitemukan == nullptr)
+  {
+    cout << "Buku tidak ditemukan." << endl;
+  }
+  else
+  {
+    cout << "Buku tidak sedang dipinjam." << endl;
   }
 }
 
@@ -474,7 +526,7 @@ int main()
         case 4:
           cetakSemuaRak();
           break;
-        
+
         case 5:
         {
           int pilihanRak;
@@ -567,23 +619,7 @@ int main()
         }
         case 4:
         {
-          string judulBuku;
-          cout << "Masukkan Judul Buku yang ingin dikembalikan: ";
-          getline(cin, judulBuku);
-          Buku *bukuDitemukan = cariBuku(judulBuku);
-          if (bukuDitemukan != nullptr && statusPeminjaman[judulBuku])
-          {
-            statusPeminjaman[judulBuku] = false;
-            cout << "Buku berhasil dikembalikan." << endl;
-          }
-          else if (bukuDitemukan == nullptr)
-          {
-            cout << "Buku tidak ditemukan." << endl;
-          }
-          else
-          {
-            cout << "Buku tidak sedang dipinjam." << endl;
-          }
+          kembalikanBuku();
           break;
         }
         case 0:
