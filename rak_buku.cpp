@@ -252,6 +252,26 @@ Peminjam *searchPeminjam(const string &nama)
   return nullptr;
 }
 
+void hapusPeminjam(const string &nama)
+{
+  int hashIndex = hashFunction(nama);
+  int originalIndex = hashIndex;
+  while (hashTable[hashIndex] != nullptr)
+  {
+    if (hashTable[hashIndex]->nama == nama)
+    {
+      delete hashTable[hashIndex];
+      hashTable[hashIndex] = nullptr;
+      return;
+    }
+    hashIndex = (hashIndex + 1) % TABLE_SIZE;
+    if (hashIndex == originalIndex)
+    {
+      break;
+    }
+  }
+}
+
 void cetakHeaderTabelPeminjam()
 {
   cout << "------------------------------------------------------------------------------------------------------------" << endl;
@@ -317,11 +337,29 @@ void pinjamBuku(Buku *root, const string &judul, const string &nama, const strin
   {
     statusPeminjaman[judul] = true;
     insertPeminjam(nama, noHandphone, alamat, judul);
-    cout << "Buku \"" << judul << "\" berhasil dipinjam." << endl;
+    cout << "Buku " << judul << " berhasil dipinjam." << endl;
   }
   else
   {
-    cout << "Buku \"" << judul << "\" tidak tersedia atau sudah dipinjam." << endl;
+    cout << "Buku "<< judul <<  " tidak tersedia atau sudah dipinjam." << endl;
+  }
+}
+
+void kembalikanBuku(const string &judul)
+{
+  if (statusPeminjaman[judul])
+  {
+    statusPeminjaman[judul] = false; // Ubah status peminjaman menjadi tersedia
+    Peminjam *peminjam = searchPeminjam(judul);
+    if (peminjam != nullptr)
+    {
+      hapusPeminjam(peminjam->nama); // Hapus data peminjam dari hashTable
+    }
+    cout << "Buku " << judul << " berhasil dikembalikan."<< endl;
+  }
+  else
+  {
+    cout << "Buku " << judul <<"tidak dalam daftar buku yang sedang dipinjam."<< endl;
   }
 }
 
@@ -393,6 +431,7 @@ int main()
   root = tambahBuku(root, "Java", "James Gosling", "Informatika", 1995, "teknologi", rak);
   root = tambahBuku(root, "Python", "Guido van Rossum", "Informatika", 1991, "teknologi", rak);
   root = tambahBuku(root, "C++", "Bjarne Stroustrup", "Informatika", 1979, "teknologi", rak);
+  root = tambahBuku(root, "C#", "Anders Hejlsberg", "Informatika", 2000, "teknologi", rak);
 
   int pilihMenuUtama;
   do
@@ -413,7 +452,7 @@ int main()
       do
       {
         cout << "================================" << endl;
-        cout << "       MASUK SEBAGAI ADMIN      " << endl;
+        cout << " MASUK SEBAGAI ADMIN " << endl;
         cout << "================================" << endl;
         cout << "1. Tambah Buku" << endl;
         cout << "2. Edit Buku" << endl;
@@ -421,7 +460,7 @@ int main()
         cout << "4. Tampilkan Buku" << endl;
         cout << "5. Cari Buku" << endl;
         cout << "6. Tampilkan Peminjam" << endl;
-        cout << "7. Tampilkan dan Pilih Kategori" << endl; // Menu baru
+        cout << "7. Tampilkan dan Pilih Kategori" << endl;
         cout << "0. Keluar" << endl;
         cout << ">";
         cin >> pilihMenuAdmin;
@@ -440,7 +479,7 @@ int main()
           getline(cin, penerbit);
           cout << "Masukkan Tahun: ";
           cin >> tahun;
-          cin.ignore(); // Mengabaikan newline character
+          cin.ignore(); 
           cout << "Masukkan Kategori (sains, teknologi, sejarah, filsafat, agama, sosial, bahasa): ";
           getline(cin, kategori);
 
@@ -526,8 +565,14 @@ int main()
           break;
         }
         case 4:
-          // Implementasi Kembalikan Buku di sini
+        {
+          string judul;
+          cout << "Masukkan judul buku yang ingin dikembalikan: ";
+          cin.ignore();
+          getline(cin, judul);
+          kembalikanBuku(judul);
           break;
+        }
         case 5:
           pilihKategori(rak);
           break;
