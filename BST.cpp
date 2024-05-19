@@ -1,3 +1,10 @@
+Searching
+Sorting
+
+
+
+
+
 #include <iostream>
 #include <unordered_map>
 using namespace std;
@@ -235,9 +242,6 @@ void cetakDenganLebarPeminjam(const string &str, int lebar)
   {
     cout << ' ';
   }
-}
-void cekStatusBuku(Buku *buku){
-  if (buku != nullptr)
 }
 
 void cetakPeminjam(Peminjam *peminjam, int nomor)

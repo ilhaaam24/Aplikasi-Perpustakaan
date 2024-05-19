@@ -1,6 +1,8 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <fstream>
+#include <sstream>
 using namespace std;
 
 struct Buku
@@ -113,6 +115,31 @@ Buku *tambahBuku(Buku *root, const string &judul, const string &penulis, const s
     cout << "Buku dengan judul \"" << judul << "\" sudah ada di tree." << endl;
   }
   return root;
+}
+void bacaFileBuku(Buku *&root, Rak &rak, const string &filename)
+{
+  ifstream file(filename);
+  if (!file)
+  {
+    cerr << "Tidak bisa membuka file: " << filename << endl;
+    return;
+  }
+
+  string line;
+  while (getline(file, line))
+  {
+    stringstream ss(line);
+    string judul, penulis, penerbit, tahunStr, kategori;
+    getline(ss, judul, '|');
+    getline(ss, penulis, '|');
+    getline(ss, penerbit, '|');
+    getline(ss, tahunStr, '|');
+    getline(ss, kategori, '|');
+
+    int tahun = stoi(tahunStr);
+    root = tambahBuku(root, judul, penulis, penerbit, tahun, kategori, rak);
+  }
+  file.close();
 }
 
 void cetakHeaderTabel()
@@ -337,11 +364,11 @@ void pinjamBuku(Buku *root, const string &judul, const string &nama, const strin
   {
     statusPeminjaman[judul] = true;
     insertPeminjam(nama, noHandphone, alamat, judul);
-    cout << "Buku " << judul << " berhasil dipinjam." << endl;
+    cout << "Buku " << judul << " berhasil dipinjam >_<" << endl;
   }
   else
   {
-    cout << "Buku "<< judul <<  " tidak tersedia atau sudah dipinjam." << endl;
+    cout << "Buku " << judul << " tidak tersedia atau sudah dipinjam " << endl;
   }
 }
 
@@ -355,11 +382,11 @@ void kembalikanBuku(const string &judul)
     {
       hapusPeminjam(peminjam->nama); // Hapus data peminjam dari hashTable
     }
-    cout << "Buku " << judul << " berhasil dikembalikan."<< endl;
+    cout << "Buku " << judul << " berhasil dikembalikan >_<" << endl;
   }
   else
   {
-    cout << "Buku " << judul <<"tidak dalam daftar buku yang sedang dipinjam."<< endl;
+    cout << "Buku " << judul << "tidak dalam daftar buku yang sedang dipinjam." << endl;
   }
 }
 
@@ -433,12 +460,15 @@ int main()
   root = tambahBuku(root, "C++", "Bjarne Stroustrup", "Informatika", 1979, "teknologi", rak);
   root = tambahBuku(root, "C#", "Anders Hejlsberg", "Informatika", 2000, "teknologi", rak);
 
+  bacaFileBuku(root, rak, "Database_Buku.txt");
+
   int pilihMenuUtama;
   do
   {
-    cout << "================================" << endl;
-    cout << " SELAMAT DATANG DI PERPUSTAKAAN " << endl;
-    cout << "================================" << endl;
+    cout << "\n======================================" << endl;
+    cout << "    SELAMAT DATANG DI PERPUSTAKAAN    " << endl;
+    cout << "             CAHAYA ILMU              " << endl;
+    cout << "======================================" << endl;
     cout << "1. Masuk Sebagai Admin" << endl;
     cout << "2. Masuk Sebagai User" << endl;
     cout << "0. Keluar" << endl;
@@ -451,8 +481,8 @@ int main()
       int pilihMenuAdmin;
       do
       {
-        cout << "================================" << endl;
-        cout << " MASUK SEBAGAI ADMIN " << endl;
+        cout << "\n================================" << endl;
+        cout << "           MENU ADMIN           " << endl;
         cout << "================================" << endl;
         cout << "1. Tambah Buku" << endl;
         cout << "2. Edit Buku" << endl;
@@ -479,7 +509,7 @@ int main()
           getline(cin, penerbit);
           cout << "Masukkan Tahun: ";
           cin >> tahun;
-          cin.ignore(); 
+          cin.ignore();
           cout << "Masukkan Kategori (sains, teknologi, sejarah, filsafat, agama, sosial, bahasa): ";
           getline(cin, kategori);
 
@@ -523,21 +553,20 @@ int main()
       int pilihMenuUser;
       do
       {
+        cout << "\n================================" << endl;
+        cout << "           MENU USER            " << endl;
         cout << "================================" << endl;
-        cout << "       MASUK SEBAGAI USER       " << endl;
-        cout << "================================" << endl;
-        cout << "1. Tampilkan Buku" << endl;
+        cout << "1. Tampilkan Kategory Buku" << endl;
         cout << "2. Cari Buku" << endl;
         cout << "3. Pinjam Buku" << endl;
         cout << "4. Kembalikan Buku" << endl;
-        cout << "5. Tampilkan dan Pilih Kategori" << endl; // Menu baru
         cout << "0. Keluar" << endl;
         cout << ">";
         cin >> pilihMenuUser;
         switch (pilihMenuUser)
         {
         case 1:
-          tampilkanBuku(root, 10);
+          pilihKategori(rak);
           break;
         case 2:
         {
@@ -573,9 +602,6 @@ int main()
           kembalikanBuku(judul);
           break;
         }
-        case 5:
-          pilihKategori(rak);
-          break;
         default:
           cout << "Pilihan Tidak Tersedia" << endl;
           break;
