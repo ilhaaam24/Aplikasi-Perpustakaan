@@ -1,0 +1,70 @@
+Fisika Dasar|Paul G. Hewitt|Erlangga|2012|sains
+Kimia Umum|Steven S. Zumdahl|Cengage Learning|2014|sains
+Biologi 1|Neil A. Campbell|Pearson|2011|sains
+Matematika 1|James Stewart|Cengage Learning|2013|sains
+Astronomi|Michael A. Seeds|Cengage Learning|2015|sains
+Geologi|Charles C. Plummer|McGraw-Hill|2009|sains
+Ekologi|Michael Begon|Blackwell|2006|sains
+Zoologi|Stephen A. Miller|McGraw-Hill|2010|sains
+Botani|James D. Mauseth|Jones & Bartlett|2011|sains
+Anatomi|Elaine N. Marieb|Pearson|2010|sains
+Teknik Mesin|Robert L. Norton|McGraw-Hill|2008|teknologi
+Robotika|John J. Craig|Pearson|2005|teknologi
+Komputer 101|Charles Petzold|Microsoft Press|2000|teknologi
+Sistem Digital|Morris Mano|Pearson|2006|teknologi
+Elektronika|Thomas L. Floyd|Pearson|2010|teknologi
+Jaringan Komp|Andrew S.|Pearson|2011|teknologi
+AI Modern|Stuart Russell|Pearson|2009|teknologi
+Pemrograman C|Dennis Ritchie|Prentice Hall|1978|teknologi
+Data Mining|Jiawei Han|Morgan Kaufmann|2011|teknologi
+Web Dev|Jon Duckett|Wiley|2011|teknologi
+Sejarah Dunia|J. M. Roberts|Oxford University Press|2003|sejarah
+Perang Dunia|Martin Gilbert|Henry Holt|1990|sejarah
+Napoleon|Andrew Roberts|Penguin Books|2014|sejarah
+Revolusi|Simon Schama|Penguin Books|1989|sejarah
+Mesir Kuno|Toby Wilkinson|Random House|2011|sejarah
+Romawi|Mary Beard|Liveright|2015|sejarah
+China Kuno|John Keay|HarperCollins|2009|sejarah
+Jepang Feodal|Marius Jansen|Harvard University Press|2000|sejarah
+Viking|Robert Ferguson|Penguin Books|2009|sejarah
+Renaisans|Paul Johnson|Modern Library|2000|sejarah
+Plato|Robin Waterfield|Oxford University Press|2009|filsafat
+Etika|Aristoteles|Cambridge University Press|2011|filsafat
+Kritik Murni|Immanuel Kant|Penguin Classics|2007|filsafat
+Nihilisme|Friedrich Nietzsche|Penguin Books|2003|filsafat
+Eksistensi|Jean-Paul Sartre|Gallimard|1943|filsafat
+Estetika|David Hume|Oxford University Press|2008|filsafat
+Stoisisme|Seneca|Penguin Classics|2004|filsafat
+Pencerahan|Voltaire|Oxford University Press|1964|filsafat
+Dialektika|Hegel|Cambridge University Press|1977|filsafat
+Postmodern|Lyotard|University of Minnesota Press|1984|filsafat
+Islam 101|Karen Armstrong|Penguin Books|2002|agama
+Buddhisme|Thich Nhat Hanh|Parallax Press|1999|agama
+Hinduisme|Klaus K. Klostermaier|Oxford University Press|2007|agama
+Kristen Dasar|C.S. Lewis|HarperCollins|1952|agama
+Judaisme|Martin Goodman|Penguin Books|2011|agama
+Taoisme|Benjamin Hoff|Penguin Books|1982|agama
+Sikhisme|W. Owen Cole|Bloomsbury|2004|agama
+Zen|D.T. Suzuki|Penguin Classics|1956|agama
+Kabbalah|Gershom Scholem|Schocken|1965|agama
+Mormon|Richard Bushman|Knopf|2005|agama
+Sosiologi|Anthony Giddens|Polity|2006|sosial
+Antropologi|Conrad Phillip|McGraw-Hill|2012|sosial
+Psikologi|John W. Santrock|McGraw-Hill|2010|sosial
+Ekonomi|Paul Samuelson|McGraw-Hill|2004|sosial
+Politik|Andrew Heywood|Palgrave Macmillan|2013|sosial
+Geografi|Harm J. de Blij|Oxford University Press|2012|sosial
+Kriminologi|Larry Siegel|Cengage Learning|2014|sosial
+Budaya|Raymond Williams|Palgrave Macmillan|1981|sosial
+Sosial Masy|Peter Berger|Anchor Books|1963|sosial
+Hukum|John Finnis|Oxford University Press|2011|sosial
+Bahasa Spanyol|Dawn Michelle Baude|McGraw-Hill|2003|bahasa
+Bahasa Jepang|Minae Mizumura|Columbia University Press|2012|bahasa
+Bahasa Prancis|Laura K. Lawless|McGraw-Hill|2004|bahasa
+Bahasa Jerman|Heiner Schenke|Routledge|2004|bahasa
+Bahasa Korea|Ross King|Tuttle Publishing|2004|bahasa
+Bahasa Italia|Marcel Danesi|Barron's|2005|bahasa
+Bahasa Rusia|Nicholas J. Brown|Circassian|1996|bahasa
+Bahasa Arab|El Said Badawi|Cambridge University Press|2013|bahasa
+Bahasa Mandarin|Yong Ho|Hippocrene Books|2005|bahasa
+Bahasa Latin|Andrew Keller|Yale University Press|2015|bahasa
