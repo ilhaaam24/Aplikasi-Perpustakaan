@@ -80,7 +80,15 @@ Buku *createNode(const string &judul, const string &penulis, const string &pener
   statusPeminjaman[judul] = false; // Semua buku awalnya tersedia
   return newNode;
 }
-
+Buku *cariPengganti(Buku *node)
+{
+  Buku *current = node;
+  while (current && current->left != nullptr)
+  {
+    current = current->left;
+  }
+  return current;
+}
 Buku *tambahBuku(Buku *root, const string &judul, const string &penulis, const string &penerbit, int tahun, const string &kategori, Rak &rak)
 {
   if (root == nullptr)
@@ -116,6 +124,7 @@ Buku *tambahBuku(Buku *root, const string &judul, const string &penulis, const s
   }
   return root;
 }
+
 void bacaFileBuku(Buku *&root, Rak &rak, const string &filename)
 {
   ifstream file(filename);
@@ -381,8 +390,8 @@ void kembalikanBuku(const string &judul)
     if (peminjam != nullptr)
     {
       hapusPeminjam(peminjam->nama); // Hapus data peminjam dari hashTable
+      cout << "Buku " << judul << " berhasil dikembalikan >_<" << endl;
     }
-    cout << "Buku " << judul << " berhasil dikembalikan >_<" << endl;
   }
   else
   {
@@ -449,16 +458,114 @@ void pilihKategori(Rak &rak)
     cout << "--------------------------------------------------------------------------------" << endl;
   }
 }
+void denahPerpustakaan()
+{
+  cout << "================================================================================" << endl;
+  cout << "                            DENAH PERPUSTAKAAN                                  " << endl;
+  cout << "================================================================================" << endl;
+  cout << "|                               PINTU MASUK                                    |" << endl;
+  cout << "|                                    |                                         |" << endl;
+  cout << "|                                    |                                         |" << endl;
+  cout << "|               SAINS----------TEKNOLOGI-------SEJARAH-----FILSAFAT            |" << endl;
+  cout << "|                 |                  |                        /                |" << endl;
+  cout << "|                 |                  |                       /                 |" << endl;
+  cout << "|                 |                  |                      /                  |" << endl;
+  cout << "|                 |                  |                     /                   |" << endl;
+  cout << "|              BAHASA-------------SOSIAL-------------AGAMA                     |" << endl;
+  cout << "================================================================================" << endl;
+}
+Buku *hapusNode(Buku *root, const string &judul)
+{
+  // Jika root kosong, kembalikan nullptr
+  if (root == nullptr)
+  {
+    return nullptr;
+  }
+
+  // Temukan buku yang akan dihapus
+  if (judul < root->judul)
+  {
+    root->left = hapusNode(root->left, judul);
+  }
+  else if (judul > root->judul)
+  {
+    root->right = hapusNode(root->right, judul);
+  }
+  else
+  {
+    // Kasus ketika ditemukan buku yang akan dihapus
+    if (root->left == nullptr)
+    {
+      Buku *temp = root->right;
+      delete root;
+      return temp;
+    }
+    else if (root->right == nullptr)
+    {
+      Buku *temp = root->left;
+      delete root;
+      return temp;
+    }
+
+    // Jika buku memiliki dua anak, cari pengganti dari sub-pohon kanan
+    Buku *temp = cariPengganti(root->right);
+
+    // Salin nilai pengganti ke node yang akan dihapus
+    root->judul = temp->judul;
+
+    // Hapus pengganti dari sub-pohon kanan
+    root->right = hapusNode(root->right, temp->judul);
+  }
+  return root;
+}
+void hapusDariRak(vector<Buku *> &kategori, const string &judul)
+{
+  for (auto it = kategori.begin(); it != kategori.end(); ++it)
+  {
+    if ((*it)->judul == judul)
+    {
+      delete *it;
+      kategori.erase(it);
+      break;
+    }
+  }
+}
+void hapusBuku(Buku *&root, const string &judul, Rak &rak)
+{
+  // Cari buku dalam pohon biner pencarian
+  Buku *buku = cariBuku(root, judul);
+  if (buku != nullptr)
+  {
+    // Hapus buku dari pohon biner pencarian
+    root = hapusNode(root, judul);
+
+    // Hapus buku dari vektor rak sesuai kategorinya
+    if (buku->kategori == "sains")
+    {
+      hapusDariRak(rak.sains, judul);
+    }
+    else if (buku->kategori == "teknologi")
+    {
+      hapusDariRak(rak.teknologi, judul);
+    }
+    else if (buku->kategori == "sejarah")
+    {
+      hapusDariRak(rak.sejarah, judul);
+    }
+    // Lanjutkan untuk kategori lainnya
+
+    cout << "Buku dengan judul \"" << judul << "\" berhasil dihapus." << endl;
+  }
+  else
+  {
+    cout << "Buku dengan judul \"" << judul << "\" tidak ditemukan." << endl;
+  }
+}
 
 int main()
 {
   Buku *root = nullptr;
   Rak rak;
-
-  root = tambahBuku(root, "Java", "James Gosling", "Informatika", 1995, "teknologi", rak);
-  root = tambahBuku(root, "Python", "Guido van Rossum", "Informatika", 1991, "teknologi", rak);
-  root = tambahBuku(root, "C++", "Bjarne Stroustrup", "Informatika", 1979, "teknologi", rak);
-  root = tambahBuku(root, "C#", "Anders Hejlsberg", "Informatika", 2000, "teknologi", rak);
 
   bacaFileBuku(root, rak, "Database_Buku.txt");
 
@@ -484,13 +591,11 @@ int main()
         cout << "\n================================" << endl;
         cout << "           MENU ADMIN           " << endl;
         cout << "================================" << endl;
-        cout << "1. Tambah Buku" << endl;
-        cout << "2. Edit Buku" << endl;
-        cout << "3. Hapus Buku" << endl;
-        cout << "4. Tampilkan Buku" << endl;
-        cout << "5. Cari Buku" << endl;
-        cout << "6. Tampilkan Peminjam" << endl;
-        cout << "7. Tampilkan dan Pilih Kategori" << endl;
+        cout << "1. Input Buku" << endl;
+        cout << "2. Hapus Buku" << endl;
+        cout << "3. Tampilkan Buku Berdasarkan Kategori" << endl;
+        cout << "4. Cari Buku" << endl;
+        cout << "5. Tampilkan Peminjam" << endl;
         cout << "0. Keluar" << endl;
         cout << ">";
         cin >> pilihMenuAdmin;
@@ -517,15 +622,18 @@ int main()
           break;
         }
         case 2:
-          // Implementasi Edit Buku di sini
+        {
+          string judul;
+          cout << "Masukkan judul buku yang ingin dihapus: ";
+          cin.ignore();
+          getline(cin, judul);
+          hapusBuku(root, judul, rak);
           break;
+        }
         case 3:
-          // Implementasi Hapus Buku di sini
+          pilihKategori(rak);
           break;
         case 4:
-          tampilkanBuku(root, 10);
-          break;
-        case 5:
         {
           string judul;
           cout << "Masukkan judul buku yang ingin dicari: ";
@@ -535,11 +643,8 @@ int main()
           tampilkanDetailBuku(buku);
           break;
         }
-        case 6:
+        case 5:
           tampilkanPeminjam();
-          break;
-        case 7:
-          pilihKategori(rak);
           break;
         default:
           cout << "Pilihan Tidak Tersedia" << endl;
