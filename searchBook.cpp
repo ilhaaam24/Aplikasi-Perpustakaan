@@ -1,120 +1,162 @@
+
 #include <iostream>
-#include <string>
 #include <unordered_map>
+#include <vector>
+#include <fstream>
+#include <sstream>
 using namespace std;
-
-const int MAX_BUKU = 10;
-const int MAX_PEMINJAM = 15;
-
-struct Peminjam
-{
-  string nama;
-  string noHandphone;
-  Peminjam *next;
-};
-
-Peminjam *tablePeminjam[MAX_PEMINJAM] = {nullptr};
 
 struct Buku
 {
   string judul;
   string penulis;
+  string penerbit;
   int tahun;
-  bool statusPeminjaman = false;
-  Buku *next;
-  Buku *prev;
+  string kategori; // Tambahkan kategori
+  Buku *left;
+  Buku *right;
 };
 
-Buku *head = nullptr;
-Buku *tail = nullptr;
-Buku *newNode = nullptr;
-Buku *del = nullptr;
-
-struct RAK_BUKU
+struct Peminjam
 {
-  Buku *rakSains[MAX_BUKU] = {nullptr};
-  Buku *rakTeknologi[MAX_BUKU] = {nullptr};
-  Buku *rakSeni[MAX_BUKU] = {nullptr};
-  Buku *rakNovel[MAX_BUKU] = {nullptr};
-} rakBuku;
+  string nama;
+  string noHandphone;
+  string alamat;
+  string judulBukuDipinjam;
+  Peminjam *next;
+};
 
+const int TABLE_SIZE = 10;
+Peminjam *hashTable[TABLE_SIZE];
 unordered_map<string, bool> statusPeminjaman;
-unordered_map<string, Peminjam> peminjamBuku;
 
-string toLowerCase(const string &str)
+struct Rak
 {
-  string result = str;
-  for (char &c : result)
-  {
-    c = tolower(c);
-  }
-  return result;
-}
+  vector<Buku *> sains;
+  vector<Buku *> teknologi;
+  vector<Buku *> sejarah;
+  vector<Buku *> filsafat;
+  vector<Buku *> agama;
+  vector<Buku *> sosial;
+  vector<Buku *> bahasa;
+};
 
-int hashFunction(const string &str, int tableSize)
+int hashFunction(const string &key)
 {
   int hash = 0;
-  for (char c : str)
+  for (char c : key)
   {
-    hash = (hash * 31 + c) % tableSize;
+    hash = (hash * 31 + c) % TABLE_SIZE;
   }
   return hash;
 }
 
-void tambahBuku(const string &judul, const string &penulis, int tahun, const string &kategori)
+void initializeHashTable()
 {
-  newNode = new Buku();
+  for (int i = 0; i < TABLE_SIZE; i++)
+  {
+    hashTable[i] = nullptr;
+  }
+}
+
+string toLowerCase(string &str)
+{
+  for (char &c : str)
+  {
+    c = tolower(c);
+  }
+  return str;
+}
+
+Buku *createNode(const string &judul, const string &penulis, const string &penerbit, int tahun, const string &kategori)
+{
+  Buku *newNode = new Buku();
   newNode->judul = judul;
   newNode->penulis = penulis;
+  newNode->penerbit = penerbit;
   newNode->tahun = tahun;
-  newNode->next = nullptr;
-  newNode->prev = nullptr;
-
-  // Menentukan rak berdasarkan kategori
-  Buku **rak;
-  string kategoriLower = toLowerCase(kategori);
-  if (kategoriLower == "sains")
+  newNode->kategori = kategori; // Set kategori
+  newNode->left = nullptr;
+  newNode->right = nullptr;
+  statusPeminjaman[judul] = false; // Semua buku awalnya tersedia
+  return newNode;
+}
+Buku *cariPengganti(Buku *node)
+{
+  Buku *current = node;
+  while (current && current->left != nullptr)
   {
-    rak = rakBuku.rakSains;
+    current = current->left;
   }
-  else if (kategoriLower == "teknologi")
+  return current;
+}
+Buku *tambahBuku(Buku *root, const string &judul, const string &penulis, const string &penerbit, int tahun, const string &kategori, Rak &rak)
+{
+  if (root == nullptr)
   {
-    rak = rakBuku.rakTeknologi;
+    Buku *newNode = createNode(judul, penulis, penerbit, tahun, kategori);
+    if (kategori == "sains")
+      rak.sains.push_back(newNode);
+    else if (kategori == "teknologi")
+      rak.teknologi.push_back(newNode);
+    else if (kategori == "sejarah")
+      rak.sejarah.push_back(newNode);
+    else if (kategori == "filsafat")
+      rak.filsafat.push_back(newNode);
+    else if (kategori == "agama")
+      rak.agama.push_back(newNode);
+    else if (kategori == "sosial")
+      rak.sosial.push_back(newNode);
+    else if (kategori == "bahasa")
+      rak.bahasa.push_back(newNode);
+    return newNode;
   }
-  else if (kategoriLower == "seni")
+  if (judul < root->judul)
   {
-    rak = rakBuku.rakSeni;
+    root->left = tambahBuku(root->left, judul, penulis, penerbit, tahun, kategori, rak);
   }
-  else if (kategoriLower == "novel")
+  else if (judul > root->judul)
   {
-    rak = rakBuku.rakNovel;
+    root->right = tambahBuku(root->right, judul, penulis, penerbit, tahun, kategori, rak);
   }
   else
   {
-    cout << "Kategori tidak valid." << endl;
+    cout << "Buku dengan judul \"" << judul << "\" sudah ada di tree." << endl;
+  }
+  return root;
+}
+
+void bacaFileBuku(Buku *&root, Rak &rak, const string &filename)
+{
+  ifstream file(filename);
+  if (!file)
+  {
+    cerr << "Tidak bisa membuka file: " << filename << endl;
     return;
   }
 
-  // Mencari indeks kosong berikutnya di rak
-  int index = 0;
-  while (index < MAX_BUKU && rak[index] != nullptr)
+  string line;
+  while (getline(file, line))
   {
-    ++index;
-  }
+    stringstream ss(line);
+    string judul, penulis, penerbit, tahunStr, kategori;
+    getline(ss, judul, '|');
+    getline(ss, penulis, '|');
+    getline(ss, penerbit, '|');
+    getline(ss, tahunStr, '|');
+    getline(ss, kategori, '|');
 
-  // Menambahkan buku baru ke rak pada indeks yang telah ditemukan
-  if (index < MAX_BUKU)
-  {
-    rak[index] = newNode;
+    int tahun = stoi(tahunStr);
+    root = tambahBuku(root, judul, penulis, penerbit, tahun, kategori, rak);
   }
-  else
-  {
-    cout << "Rak penuh. Buku tidak dapat ditambahkan ke dalam rak." << endl;
-    delete newNode;
-    return;
-  }
+  file.close();
+}
 
-  statusPeminjaman[judul] = false; // Buku baru dianggap tersedia
+void cetakHeaderTabel()
+{
+  cout << "--------------------------------------------------------------------------------" << endl;
+  cout << "| No |      JUDUL      |      PENULIS      |      TAHUN      |     STATUS      |" << endl;
+  cout << "--------------------------------------------------------------------------------" << endl;
 }
 
 void cetakDenganLebar(const string &str, int lebar)
@@ -126,168 +168,85 @@ void cetakDenganLebar(const string &str, int lebar)
   }
 }
 
-void cetakHeaderTabel()
+void cetakBuku(Buku *buku, int nomor)
 {
-  cout << "--------------------------------------------------------------------------------" << endl;
-  cout << "| No |      JUDUL      |      PENULIS      |      TAHUN      |     STATUS      |" << endl;
-  cout << "--------------------------------------------------------------------------------" << endl;
+  cout << "| ";
+  cetakDenganLebar(to_string(nomor), 2);
+  cout << " | ";
+  if (buku != nullptr)
+  {
+    cetakDenganLebar(buku->judul, 15);
+    cout << " | ";
+    cetakDenganLebar(buku->penulis, 17);
+    cout << " | ";
+    cetakDenganLebar(to_string(buku->tahun), 15);
+    cout << " | ";
+    string status = statusPeminjaman[buku->judul] ? "Dipinjam" : "Tersedia";
+    cetakDenganLebar(status, 15);
+  }
+  else
+  {
+    cetakDenganLebar("", 15);
+    cout << " | ";
+    cetakDenganLebar("", 17);
+    cout << " | ";
+    cetakDenganLebar("", 15);
+    cout << " | ";
+    cetakDenganLebar("", 15);
+  }
+  cout << " |" << endl;
 }
 
-void cetakRakBuku(Buku *rak[])
+void inorderTraversal(Buku *root, Buku *arr[], int &index, int maxBuku)
+{
+  if (root != nullptr && index < maxBuku)
+  {
+    inorderTraversal(root->left, arr, index, maxBuku);
+    if (index < maxBuku)
+    {
+      arr[index++] = root;
+    }
+    inorderTraversal(root->right, arr, index, maxBuku);
+  }
+}
+
+void tampilkanBuku(Buku *root, int maxBuku)
 {
   cetakHeaderTabel();
-  int nomor = 1;
-  for (int i = 0; i < MAX_BUKU; ++i)
+  Buku *arr[maxBuku] = {nullptr};
+  int index = 0;
+  inorderTraversal(root, arr, index, maxBuku);
+
+  for (int i = 0; i < maxBuku; ++i)
   {
-    if (rak[i] != nullptr)
-    {
-      cout << "| ";
-      cetakDenganLebar(to_string(nomor++), 2);
-      cout << " | ";
-      cetakDenganLebar(rak[i]->judul, 15);
-      cout << " | ";
-      cetakDenganLebar(rak[i]->penulis, 17);
-      cout << " | ";
-      cout << rak[i]->tahun;
-      int tahunPanjang = to_string(rak[i]->tahun).length();
-      for (int j = tahunPanjang; j < 15; ++j)
-      {
-        cout << ' ';
-      }
-      cout << " | ";
-      string status = statusPeminjaman[rak[i]->judul] ? "Dipinjam" : "Tersedia";
-      cout << status;
-      for (int j = status.length(); j < 15; ++j)
-      {
-        cout << ' ';
-      }
-      cout << " |" << endl;
-    }
-    else
-    {
-      cout << "| ";
-      cetakDenganLebar(to_string(nomor++), 2);
-      cout << " | ";
-      cetakDenganLebar("", 15); // Cetak judul kosong
-      cout << " | ";
-      cetakDenganLebar("", 17); // Cetak penulis kosong
-      cout << " | ";
-      cetakDenganLebar("", 15); // Cetak tahun kosong
-      cout << " | ";
-      cetakDenganLebar("", 15); // Cetak status kosong
-      cout << " |" << endl;
-    }
+    cetakBuku(arr[i], i + 1);
   }
+
   cout << "--------------------------------------------------------------------------------" << endl;
 }
 
-void cetakSemuaRak()
+Buku *cariBuku(Buku *root, const string &judul)
 {
-  cout << "--------------------------------------------------------------------------------" << endl;
-  cout << "                                RAK SAINS                                       " << endl;
-  cetakRakBuku(rakBuku.rakSains);
+  if (root == nullptr || root->judul == judul)
+  {
+    return root;
+  }
 
-  cout << "--------------------------------------------------------------------------------" << endl;
-  cout << "                              RAK TEKNOLOGI                                     " << endl;
-  cetakRakBuku(rakBuku.rakTeknologi);
+  if (judul < root->judul)
+  {
+    return cariBuku(root->left, judul);
+  }
 
-  cout << "--------------------------------------------------------------------------------" << endl;
-  cout << "                                RAK SENI                                        " << endl;
-  cetakRakBuku(rakBuku.rakSeni);
-
-  cout << "--------------------------------------------------------------------------------" << endl;
-  cout << "                                RAK NOVEL                                       " << endl;
-  cetakRakBuku(rakBuku.rakNovel);
+  return cariBuku(root->right, judul);
 }
 
-void cetakRakTertentu(int pilihanRak)
-{
-  switch (pilihanRak)
-  {
-  case 1:
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << "                                RAK SAINS                                       " << endl;
-    cetakRakBuku(rakBuku.rakSains);
-    break;
-  case 2:
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << "                              RAK TEKNOLOGI                                     " << endl;
-    cetakRakBuku(rakBuku.rakTeknologi);
-    break;
-  case 3:
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << "                                RAK SENI                                        " << endl;
-    cetakRakBuku(rakBuku.rakSeni);
-    break;
-  case 4:
-    cout << "--------------------------------------------------------------------------------" << endl;
-    cout << "                                RAK NOVEL                                       " << endl;
-    cetakRakBuku(rakBuku.rakNovel);
-    break;
-  default:
-    cout << "Pilihan rak tidak valid." << endl;
-    break;
-  }
-}
-void bubbleSort(Buku *rak[])
-{
-  for (int i = 0; i < MAX_BUKU - 1; ++i)
-  {
-    for (int j = 0; j < MAX_BUKU - i - 1; ++j)
-    {
-      if (rak[j] != nullptr && rak[j + 1] != nullptr && rak[j]->judul > rak[j + 1]->judul)
-      {
-        // Tukar posisi buku jika judul buku saat ini lebih besar dari judul buku berikutnya
-        Buku *temp = rak[j];
-        rak[j] = rak[j + 1];
-        rak[j + 1] = temp;
-      }
-    }
-  }
-}
-
-Buku *cariBuku(const string &judul)
-{
-  for (int i = 0; i < MAX_BUKU; ++i)
-  {
-    if (rakBuku.rakSains[i] != nullptr && toLowerCase(rakBuku.rakSains[i]->judul) == toLowerCase(judul))
-    {
-      return rakBuku.rakSains[i];
-    }
-  }
-  for (int i = 0; i < MAX_BUKU; ++i)
-  {
-    if (rakBuku.rakTeknologi[i] != nullptr && toLowerCase(rakBuku.rakTeknologi[i]->judul) == toLowerCase(judul))
-    {
-      return rakBuku.rakTeknologi[i];
-    }
-  }
-  for (int i = 0; i < MAX_BUKU; ++i)
-  {
-    if (rakBuku.rakSeni[i] != nullptr && toLowerCase(rakBuku.rakSeni[i]->judul) == toLowerCase(judul))
-    {
-      return rakBuku.rakSeni[i];
-    }
-  }
-  for (int i = 0; i < MAX_BUKU; ++i)
-  {
-    if (rakBuku.rakNovel[i] != nullptr && toLowerCase(rakBuku.rakNovel[i]->judul) == toLowerCase(judul))
-    {
-      return rakBuku.rakNovel[i];
-    }
-  }
-  return nullptr;
-}
-
-void tampilkanStatusBuku(Buku *buku)
+void tampilkanDetailBuku(Buku *buku)
 {
   if (buku != nullptr)
   {
-    cout << "Judul: " << buku->judul << endl;
-    cout << "Penulis: " << buku->penulis << endl;
-    cout << "Tahun: " << buku->tahun << endl;
-    string status = statusPeminjaman[buku->judul] ? "Dipinjam" : "Tersedia";
-    cout << "Status: " << status << endl;
+    cetakHeaderTabel();
+    cetakBuku(buku, 1);
+    cout << "--------------------------------------------------------------------------------" << endl;
   }
   else
   {
@@ -295,186 +254,329 @@ void tampilkanStatusBuku(Buku *buku)
   }
 }
 
-bool linearProbingInsertPeminjam(Peminjam *table[], Peminjam *newPeminjam)
+void insertPeminjam(const string &nama, const string &noHandphone, const string &alamat, const string &judulBukuDipinjam)
 {
-  int index = hashFunction(newPeminjam->noHandphone, MAX_PEMINJAM);
-  for (int i = 0; i < MAX_PEMINJAM; ++i)
+  Peminjam *newPeminjam = new Peminjam();
+  newPeminjam->nama = nama;
+  newPeminjam->noHandphone = noHandphone;
+  newPeminjam->alamat = alamat;
+  newPeminjam->judulBukuDipinjam = judulBukuDipinjam;
+
+  int hashIndex = hashFunction(nama);
+  while (hashTable[hashIndex] != nullptr)
   {
-    int probingIndex = (index + i) % MAX_PEMINJAM;
-    if (table[probingIndex] == nullptr)
-    {
-      table[probingIndex] = newPeminjam;
-      return true;
-    }
+    hashIndex = (hashIndex + 1) % TABLE_SIZE;
   }
-  return false;
+  hashTable[hashIndex] = newPeminjam;
 }
 
-Peminjam *linearProbingSearchPeminjam(Peminjam *table[], const string &noHandphone)
+Peminjam *searchPeminjam(const string &nama)
 {
-  int index = hashFunction(noHandphone, MAX_PEMINJAM);
-  for (int i = 0; i < MAX_PEMINJAM; ++i)
+  int hashIndex = hashFunction(nama);
+  int originalIndex = hashIndex;
+  while (hashTable[hashIndex] != nullptr)
   {
-    int probingIndex = (index + i) % MAX_PEMINJAM;
-    if (table[probingIndex] == nullptr)
+    if (hashTable[hashIndex]->nama == nama)
     {
-      return nullptr;
+      return hashTable[hashIndex];
     }
-    if (table[probingIndex]->noHandphone == noHandphone)
+    hashIndex = (hashIndex + 1) % TABLE_SIZE;
+    if (hashIndex == originalIndex)
     {
-      return table[probingIndex];
+      break;
     }
   }
   return nullptr;
 }
-bool linearProbingDeletePeminjam(Peminjam *table[], const string &noHandphone)
+
+void hapusPeminjam(const string &nama)
 {
-  int index = hashFunction(noHandphone, MAX_PEMINJAM);
-  for (int i = 0; i < MAX_PEMINJAM; ++i)
+  int hashIndex = hashFunction(nama);
+  int originalIndex = hashIndex;
+  while (hashTable[hashIndex] != nullptr)
   {
-    int probingIndex = (index + i) % MAX_PEMINJAM;
-    if (table[probingIndex] == nullptr)
+    if (hashTable[hashIndex]->nama == nama)
     {
-      return false; // Tidak ditemukan
+      delete hashTable[hashIndex];
+      hashTable[hashIndex] = nullptr;
+      return;
     }
-    if (table[probingIndex]->noHandphone == noHandphone)
+    hashIndex = (hashIndex + 1) % TABLE_SIZE;
+    if (hashIndex == originalIndex)
     {
-      delete table[probingIndex]; // Hapus peminjam
-      table[probingIndex] = nullptr;
-      return true;
+      break;
     }
   }
-  return false;
 }
 
-void hapusPeminjam(const string &noHandphone)
+void cetakHeaderTabelPeminjam()
 {
-  if (!linearProbingDeletePeminjam(tablePeminjam, noHandphone))
+  cout << "------------------------------------------------------------------------------------------------------------" << endl;
+  cout << "| No |         NAMA         |    NO HANDPHONE   |          ALAMAT          |    JUDUL BUKU DIPINJAM   |" << endl;
+  cout << "------------------------------------------------------------------------------------------------------------" << endl;
+}
+
+void cetakDenganLebarPeminjam(const string &str, int lebar)
+{
+  cout << str;
+  for (int i = str.length(); i < lebar; ++i)
   {
-    cout << "Peminjam dengan nomor handphone " << noHandphone << " tidak ditemukan." << endl;
+    cout << ' ';
   }
 }
-void tampilkanDataPeminjam(const string &noHandphone)
+
+void cetakPeminjam(Peminjam *peminjam, int nomor)
 {
-  Peminjam *peminjamDitemukan = linearProbingSearchPeminjam(tablePeminjam, noHandphone);
-  if (peminjamDitemukan != nullptr)
+  cout << "| ";
+  cetakDenganLebarPeminjam(to_string(nomor), 2);
+  cout << " | ";
+  if (peminjam != nullptr)
   {
-    cout << "Nama: " << peminjamDitemukan->nama << endl;
-    cout << "No Handphone: " << peminjamDitemukan->noHandphone << endl;
+    cetakDenganLebarPeminjam(peminjam->nama, 20);
+    cout << " | ";
+    cetakDenganLebarPeminjam(peminjam->noHandphone, 16);
+    cout << " | ";
+    cetakDenganLebarPeminjam(peminjam->alamat, 25);
+    cout << " | ";
+    cetakDenganLebarPeminjam(peminjam->judulBukuDipinjam, 22);
   }
   else
   {
-    cout << "Peminjam tidak ditemukan." << endl;
+    cetakDenganLebarPeminjam("", 20);
+    cout << " | ";
+    cetakDenganLebarPeminjam("", 16);
+    cout << " | ";
+    cetakDenganLebarPeminjam("", 25);
+    cout << " | ";
+    cetakDenganLebarPeminjam("", 22);
   }
-}
-void tambahPeminjam(const string &nama, const string &noHandphone)
-{
-  Peminjam *peminjam = new Peminjam();
-  peminjam->nama = nama;
-  peminjam->noHandphone = noHandphone;
-  peminjam->next = nullptr;
-
-  if (!linearProbingInsertPeminjam(tablePeminjam, peminjam))
-  {
-    cout << "Tabel peminjam penuh. Peminjam tidak dapat ditambahkan." << endl;
-    delete peminjam;
-  }
+  cout << " |" << endl;
 }
 
-void cetakSemuaPeminjam()
+void tampilkanPeminjam()
 {
-  cout << "----------------------------------------------------------" << endl;
-  cout << "|                   TABEL PEMINJAM                        |" << endl;
-  cout << "----------------------------------------------------------" << endl;
-  cout << "| No | Nama                   | No Handphone             |" << endl;
-  cout << "----------------------------------------------------------" << endl;
-  for (int i = 0; i < MAX_PEMINJAM; ++i)
+  cetakHeaderTabelPeminjam();
+  int nomor = 1;
+  for (int i = 0; i < TABLE_SIZE; i++)
   {
-    if (tablePeminjam[i] != nullptr)
+    if (hashTable[i] != nullptr)
     {
-      cout << "| " << (i + 1) << " | ";
-      cetakDenganLebar(tablePeminjam[i]->nama, 22);
-      cout << " | ";
-      cetakDenganLebar(tablePeminjam[i]->noHandphone, 24);
-      cout << " |" << endl;
+      cetakPeminjam(hashTable[i], nomor++);
     }
   }
-  cout << "----------------------------------------------------------" << endl;
+  cout << "------------------------------------------------------------------------------------------------------------" << endl;
 }
-void pinjamBuku()
+
+void pinjamBuku(Buku *root, const string &judul, const string &nama, const string &noHandphone, const string &alamat)
 {
-  string judulBuku;
-  cout << "Masukkan Judul Buku yang ingin dipinjam: ";
-  cin.ignore();
-  getline(cin, judulBuku);
-  Buku *bukuDitemukan = cariBuku(judulBuku);
-  if (bukuDitemukan != nullptr && !statusPeminjaman[judulBuku])
+  Buku *buku = cariBuku(root, judul);
+  if (buku != nullptr && !statusPeminjaman[judul])
   {
-    string nama, noHandphone;
-    cout << "Masukkan Nama Peminjam: ";
-    getline(cin, nama);
-    cout << "Masukkan Nomor Handphone Peminjam: ";
-    getline(cin, noHandphone);
-
-    tambahPeminjam(nama, noHandphone);
-
-    statusPeminjaman[judulBuku] = true;
-    
-    peminjamBuku[judulBuku] = {nama, noHandphone};
-
-    cout << "Buku berhasil dipinjam." << endl;
-  }
-  else if (bukuDitemukan == nullptr)
-  {
-    cout << "Buku tidak ditemukan." << endl;
+    statusPeminjaman[judul] = true;
+    insertPeminjam(nama, noHandphone, alamat, judul);
+    cout << "Buku " << judul << " berhasil dipinjam >_<" << endl;
   }
   else
   {
-    cout << "Buku sedang dipinjam." << endl;
+    cout << "Buku " << judul << " tidak tersedia atau sudah dipinjam " << endl;
   }
 }
-void kembalikanBuku()
+
+void kembalikanBuku(const string &judul)
 {
-  string judulBuku;
-  cout << "Masukkan Judul Buku yang ingin dikembalikan: ";
-  cin.ignore();
-  getline(cin, judulBuku);
-  Buku *bukuDitemukan = cariBuku(judulBuku);
-  if (bukuDitemukan != nullptr && statusPeminjaman[judulBuku])
+  if (statusPeminjaman[judul])
   {
-    string noHandphone = peminjamBuku[judulBuku].noHandphone;
-    hapusPeminjam(noHandphone);
-    peminjamBuku.erase(judulBuku);
-    statusPeminjaman[judulBuku] = false;
-    cout << "Buku berhasil dikembalikan." << endl;
-  }
-  else if (bukuDitemukan == nullptr)
-  {
-    cout << "Buku tidak ditemukan." << endl;
+    statusPeminjaman[judul] = false; // Ubah status peminjaman menjadi tersedia
+    Peminjam *peminjam = searchPeminjam(judul);
+    if (peminjam != nullptr)
+    {
+      hapusPeminjam(peminjam->nama); // Hapus data peminjam dari hashTable
+      cout << "Buku " << judul << " berhasil dikembalikan >_<" << endl;
+    }
   }
   else
   {
-    cout << "Buku tidak sedang dipinjam." << endl;
+    cout << "Buku " << judul << "tidak dalam daftar buku yang sedang dipinjam." << endl;
+  }
+}
+
+void tampilkanKategori(Rak &rak)
+{
+  cout << "Kategori yang tersedia: " << endl;
+  cout << "1. Sains" << endl;
+  cout << "2. Teknologi" << endl;
+  cout << "3. Sejarah" << endl;
+  cout << "4. Filsafat" << endl;
+  cout << "5. Agama" << endl;
+  cout << "6. Sosial" << endl;
+  cout << "7. Bahasa" << endl;
+}
+
+void pilihKategori(Rak &rak)
+{
+  int pilihan;
+  tampilkanKategori(rak);
+  cout << "Pilih kategori (masukkan nomor): ";
+  cin >> pilihan;
+
+  vector<Buku *> *kategoriDipilih = nullptr;
+  switch (pilihan)
+  {
+  case 1:
+    kategoriDipilih = &rak.sains;
+    break;
+  case 2:
+    kategoriDipilih = &rak.teknologi;
+    break;
+  case 3:
+    kategoriDipilih = &rak.sejarah;
+    break;
+  case 4:
+    kategoriDipilih = &rak.filsafat;
+    break;
+  case 5:
+    kategoriDipilih = &rak.agama;
+    break;
+  case 6:
+    kategoriDipilih = &rak.sosial;
+    break;
+  case 7:
+    kategoriDipilih = &rak.bahasa;
+    break;
+  default:
+    cout << "Pilihan kategori tidak valid." << endl;
+    return;
+  }
+
+  if (kategoriDipilih)
+  {
+    cetakHeaderTabel();
+    int nomor = 1;
+    for (Buku *buku : *kategoriDipilih)
+    {
+      cetakBuku(buku, nomor++);
+    }
+    cout << "--------------------------------------------------------------------------------" << endl;
+  }
+}
+void denahPerpustakaan()
+{
+  cout << "================================================================================" << endl;
+  cout << "                            DENAH PERPUSTAKAAN                                  " << endl;
+  cout << "================================================================================" << endl;
+  cout << "|                               PINTU MASUK                                    |" << endl;
+  cout << "|                                    |                                         |" << endl;
+  cout << "|                                    |                                         |" << endl;
+  cout << "|               SAINS----------TEKNOLOGI-------SEJARAH-----FILSAFAT            |" << endl;
+  cout << "|                 |                  |                        /                |" << endl;
+  cout << "|                 |                  |                       /                 |" << endl;
+  cout << "|                 |                  |                      /                  |" << endl;
+  cout << "|                 |                  |                     /                   |" << endl;
+  cout << "|              BAHASA-------------SOSIAL-------------AGAMA                     |" << endl;
+  cout << "================================================================================" << endl;
+}
+Buku *hapusNode(Buku *root, const string &judul)
+{
+  // Jika root kosong, kembalikan nullptr
+  if (root == nullptr)
+  {
+    return nullptr;
+  }
+
+  // Temukan buku yang akan dihapus
+  if (judul < root->judul)
+  {
+    root->left = hapusNode(root->left, judul);
+  }
+  else if (judul > root->judul)
+  {
+    root->right = hapusNode(root->right, judul);
+  }
+  else
+  {
+    // Kasus ketika ditemukan buku yang akan dihapus
+    if (root->left == nullptr)
+    {
+      Buku *temp = root->right;
+      delete root;
+      return temp;
+    }
+    else if (root->right == nullptr)
+    {
+      Buku *temp = root->left;
+      delete root;
+      return temp;
+    }
+
+    // Jika buku memiliki dua anak, cari pengganti dari sub-pohon kanan
+    Buku *temp = cariPengganti(root->right);
+
+    // Salin nilai pengganti ke node yang akan dihapus
+    root->judul = temp->judul;
+
+    // Hapus pengganti dari sub-pohon kanan
+    root->right = hapusNode(root->right, temp->judul);
+  }
+  return root;
+}
+void hapusDariRak(vector<Buku *> &kategori, const string &judul)
+{
+  for (auto it = kategori.begin(); it != kategori.end(); ++it)
+  {
+    if ((*it)->judul == judul)
+    {
+      delete *it;
+      kategori.erase(it);
+      break;
+    }
+  }
+}
+void hapusBuku(Buku *&root, const string &judul, Rak &rak)
+{
+  // Cari buku dalam pohon biner pencarian
+  Buku *buku = cariBuku(root, judul);
+  if (buku != nullptr)
+  {
+    // Hapus buku dari pohon biner pencarian
+    root = hapusNode(root, judul);
+
+    // Hapus buku dari vektor rak sesuai kategorinya
+    if (buku->kategori == "sains")
+    {
+      hapusDariRak(rak.sains, judul);
+    }
+    else if (buku->kategori == "teknologi")
+    {
+      hapusDariRak(rak.teknologi, judul);
+    }
+    else if (buku->kategori == "sejarah")
+    {
+      hapusDariRak(rak.sejarah, judul);
+    }
+    // Lanjutkan untuk kategori lainnya
+
+    cout << "Buku dengan judul \"" << judul << "\" berhasil dihapus." << endl;
+  }
+  else
+  {
+    cout << "Buku dengan judul \"" << judul << "\" tidak ditemukan." << endl;
   }
 }
 
 int main()
 {
-  // Menambahkan beberapa buku untuk pengujian
-  tambahBuku("C++", "Bjarne Stroustrup", 1979, "Sains");
-  tambahBuku("Java", "James Gosling", 1995, "Sains");
-  tambahBuku("Python", "Guido van Rossum", 1991, "Sains");
-  tambahBuku("Harry Potter", "J.K. Rowling", 1997, "Novel");
-  tambahBuku("The Lord ", "J.R.R. Tolkien", 1954, "Novel");
-  tambahBuku("The Hobbit", "J.R.R. Tolkien", 1937, "Novel");
+  Buku *root = nullptr;
+  Rak rak;
 
-  Buku buku;
+  bacaFileBuku(root, rak, "Database_Buku.txt");
+
   int pilihMenuUtama;
   do
   {
-    cout << "================================" << endl;
-    cout << "       SISTEM PERPUSTAKAAN      " << endl;
-    cout << "================================" << endl;
+    cout << "\n======================================" << endl;
+    cout << "    SELAMAT DATANG DI PERPUSTAKAAN    " << endl;
+    cout << "             CAHAYA ILMU              " << endl;
+    cout << "======================================" << endl;
     cout << "1. Masuk Sebagai Admin" << endl;
     cout << "2. Masuk Sebagai User" << endl;
     cout << "0. Keluar" << endl;
@@ -487,15 +589,14 @@ int main()
       int pilihMenuAdmin;
       do
       {
+        cout << "\n================================" << endl;
+        cout << "           MENU ADMIN           " << endl;
         cout << "================================" << endl;
-        cout << "       MASUK SEBAGAI ADMIN      " << endl;
-        cout << "================================" << endl;
-        cout << "1. Tambah Buku" << endl;
-        cout << "2. Edit Buku" << endl;
-        cout << "3. Hapus Buku" << endl;
-        cout << "4. Tampilkan Semua Kategory" << endl;
-        cout << "5. Tampilkan Buku per Kategory" << endl;
-        cout << "6. List Peminjam" << endl;
+        cout << "1. Input Buku" << endl;
+        cout << "2. Hapus Buku" << endl;
+        cout << "3. Tampilkan Buku Berdasarkan Kategori" << endl;
+        cout << "4. Cari Buku" << endl;
+        cout << "5. Tampilkan Peminjam" << endl;
         cout << "0. Keluar" << endl;
         cout << ">";
         cin >> pilihMenuAdmin;
@@ -503,66 +604,48 @@ int main()
         {
         case 1:
         {
-          string kategori;
-          cout << "Masukan Judul Buku : ";
+          string judul, penulis, penerbit, kategori;
+          int tahun;
+          cout << "Masukkan Judul: ";
           cin.ignore();
-          getline(cin, buku.judul);
-          cout << "Masukan Penulis Buku : ";
-          getline(cin, buku.penulis);
-          cout << "Masukan Tahun Buku : ";
-          cin >> buku.tahun;
-          cout << "Masukan Kategori Buku (Sains/Teknologi/Seni/Novel) : ";
+          getline(cin, judul);
+          cout << "Masukkan Penulis: ";
+          getline(cin, penulis);
+          cout << "Masukkan Penerbit: ";
+          getline(cin, penerbit);
+          cout << "Masukkan Tahun: ";
+          cin >> tahun;
           cin.ignore();
+          cout << "Masukkan Kategori (sains, teknologi, sejarah, filsafat, agama, sosial, bahasa): ";
           getline(cin, kategori);
-          tambahBuku(buku.judul, buku.penulis, buku.tahun, kategori);
+
+          root = tambahBuku(root, judul, penulis, penerbit, tahun, kategori, rak);
           break;
         }
         case 2:
-          // Implementasi Edit Buku di sini
-          break;
-        case 3:
-          // Implementasi Hapus Buku di sini
-          break;
-        case 4:
-          cetakSemuaRak();
-          break;
-
-        case 5:
         {
-          int pilihanRak;
-          cout << "Pilih rak yang ingin ditampilkan:" << endl;
-          cout << "1. Rak Sains" << endl;
-          cout << "2. Rak Teknologi" << endl;
-          cout << "3. Rak Seni" << endl;
-          cout << "4. Rak Novel" << endl;
-          cout << ">";
-          cin >> pilihanRak;
-          cin.ignore(); // Menghindari masalah newline character setelah input angka
-          cetakRakTertentu(pilihanRak);
-          // Setelah cetak rak tertentu, panggil fungsi sorting
-          switch (pilihanRak)
-          {
-          case 1:
-            bubbleSort(rakBuku.rakSains);
-            break;
-          case 2:
-            bubbleSort(rakBuku.rakTeknologi);
-            break;
-          case 3:
-            bubbleSort(rakBuku.rakSeni);
-            break;
-          case 4:
-            bubbleSort(rakBuku.rakNovel);
-            break;
-          default:
-            cout << "Pilihan rak tidak valid." << endl;
-            break;
-          }
-          cetakRakTertentu(pilihanRak); // Cetak rak setelah diurutkan
+          string judul;
+          cout << "Masukkan judul buku yang ingin dihapus: ";
+          cin.ignore();
+          getline(cin, judul);
+          hapusBuku(root, judul, rak);
           break;
         }
-        case 6:
-          cetakSemuaPeminjam();
+        case 3:
+          pilihKategori(rak);
+          break;
+        case 4:
+        {
+          string judul;
+          cout << "Masukkan judul buku yang ingin dicari: ";
+          cin.ignore();
+          getline(cin, judul);
+          Buku *buku = cariBuku(root, judul);
+          tampilkanDetailBuku(buku);
+          break;
+        }
+        case 5:
+          tampilkanPeminjam();
           break;
         default:
           cout << "Pilihan Tidak Tersedia" << endl;
@@ -576,11 +659,11 @@ int main()
       int pilihMenuUser;
       do
       {
+        cout << "\n================================" << endl;
+        cout << "           MENU USER            " << endl;
         cout << "================================" << endl;
-        cout << "       MASUK SEBAGAI USER      " << endl;
-        cout << "================================" << endl;
-        cout << "1. Cari Buku" << endl;
-        cout << "2. Tampilkan Kategori Buku" << endl;
+        cout << "1. Tampilkan Kategory Buku" << endl;
+        cout << "2. Cari Buku" << endl;
         cout << "3. Pinjam Buku" << endl;
         cout << "4. Kembalikan Buku" << endl;
         cout << "0. Keluar" << endl;
@@ -589,56 +672,48 @@ int main()
         switch (pilihMenuUser)
         {
         case 1:
-        {
-          string judulBuku;
-          cout << "Masukkan Judul Buku yang ingin dicari: ";
-          cin.ignore();
-          getline(cin, judulBuku);
-          Buku *bukuDitemukan = cariBuku(judulBuku);
-          tampilkanStatusBuku(bukuDitemukan);
+          pilihKategori(rak);
           break;
-        }
         case 2:
         {
-          int pilihanRak;
-          cout << "Pilih Kategori yang ingin ditampilkan:" << endl;
-          cout << "1. Rak Sains" << endl;
-          cout << "2. Rak Teknologi" << endl;
-          cout << "3. Rak Seni" << endl;
-          cout << "4. Rak Novel" << endl;
-          cout << ">";
-          cin >> pilihanRak;
-          cin.ignore(); // Menghindari masalah newline character setelah input angka
-          cetakRakTertentu(pilihanRak);
+          string judul;
+          cout << "Masukkan judul buku yang ingin dicari: ";
+          cin.ignore();
+          getline(cin, judul);
+          Buku *buku = cariBuku(root, judul);
+          tampilkanDetailBuku(buku);
           break;
         }
         case 3:
         {
-          pinjamBuku();
+          string nama, noHandphone, alamat, judul;
+          cout << "Masukkan nama Anda: ";
+          cin.ignore();
+          getline(cin, nama);
+          cout << "Masukkan nomor handphone: ";
+          getline(cin, noHandphone);
+          cout << "Masukkan alamat: ";
+          getline(cin, alamat);
+          cout << "Masukkan judul buku yang ingin dipinjam: ";
+          getline(cin, judul);
+          pinjamBuku(root, judul, nama, noHandphone, alamat);
           break;
         }
         case 4:
         {
-          kembalikanBuku();
+          string judul;
+          cout << "Masukkan judul buku yang ingin dikembalikan: ";
+          cin.ignore();
+          getline(cin, judul);
+          kembalikanBuku(judul);
           break;
         }
-        case 0:
-          cout << "Terima kasih telah menggunakan sistem perpustakaan." << endl;
-          break;
         default:
           cout << "Pilihan Tidak Tersedia" << endl;
           break;
         }
       } while (pilihMenuUser != 0);
-      break;
     }
-    case 0:
-      cout << "Terima kasih telah menggunakan sistem perpustakaan." << endl;
-      break;
-    default:
-      cout << "Pilihan Tidak Tersedia" << endl;
-      break;
     }
   } while (pilihMenuUtama != 0);
-  return 0;
 }

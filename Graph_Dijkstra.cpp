@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <queue>
 using namespace std;
 
 struct Buku
@@ -28,7 +29,9 @@ struct Peminjam
 const int TABLE_SIZE = 10;
 Peminjam *hashTable[TABLE_SIZE];
 unordered_map<string, bool> statusPeminjaman;
-unordered_map<string
+unordered_map<string, vector<pair<string, int>>> graph;
+const int INT_MAX = 2147483647;
+const int INF = 1e9; // Representasi infinity
 
 struct Rak
 {
@@ -459,22 +462,7 @@ void pilihKategori(Rak &rak)
     cout << "--------------------------------------------------------------------------------" << endl;
   }
 }
-void denahPerpustakaan()
-{
-  cout << "================================================================================" << endl;
-  cout << "                            DENAH PERPUSTAKAAN                                  " << endl;
-  cout << "================================================================================" << endl;
-  cout << "|                               PINTU MASUK                                    |" << endl;
-  cout << "|                                    |                                         |" << endl;
-  cout << "|                                    |                                         |" << endl;
-  cout << "|               SAINS----------TEKNOLOGI-------SEJARAH-----FILSAFAT            |" << endl;
-  cout << "|                 |                  |                        /                |" << endl;
-  cout << "|                 |                  |                       /                 |" << endl;
-  cout << "|                 |                  |                      /                  |" << endl;
-  cout << "|                 |                  |                     /                   |" << endl;
-  cout << "|              BAHASA-------------SOSIAL-------------AGAMA                     |" << endl;
-  cout << "================================================================================" << endl;
-}
+
 Buku *hapusNode(Buku *root, const string &judul)
 {
   // Jika root kosong, kembalikan nullptr
@@ -562,7 +550,105 @@ void hapusBuku(Buku *&root, const string &judul, Rak &rak)
     cout << "Buku dengan judul \"" << judul << "\" tidak ditemukan." << endl;
   }
 }
+void denahPerpustakaan()
+{
+  cout << "================================================================================" << endl;
+  cout << "                            DENAH PERPUSTAKAAN                                  " << endl;
+  cout << "================================================================================" << endl;
+  cout << "|                               PINTU MASUK                                    |" << endl;
+  cout << "|                                    |                                         |" << endl;
+  cout << "|                                    |                                         |" << endl;
+  cout << "|               SAINS----------TEKNOLOGI-------SEJARAH-----FILSAFAT            |" << endl;
+  cout << "|                 |                  |                        /                |" << endl;
+  cout << "|                 |                  |                       /                 |" << endl;
+  cout << "|                 |                  |                      /                  |" << endl;
+  cout << "|                 |                  |                     /                   |" << endl;
+  cout << "|              BAHASA-------------SOSIAL-------------AGAMA                     |" << endl;
+  cout << "================================================================================" << endl;
+}
+void tambahEdge(const string &rak1, const string &rak2, int bobot)
+{
+  graph[rak1].push_back(make_pair(rak2, bobot));
+  graph[rak2].push_back(make_pair(rak1, bobot));
+}
 
+void inisialisasiGraph()
+{
+
+  tambahEdge("Pintu_Masuk", "Teknologi", 1);
+  tambahEdge("Teknologi", "Sains", 1);
+  tambahEdge("Teknologi", "Sejarah", 1);
+  tambahEdge("Teknologi", "Sosial", 2);
+  tambahEdge("Sejarah", "Filsafat", 1);
+  tambahEdge("Sains", "Bahasa", 2);
+  tambahEdge("Bahasa", "Sosial", 2);
+  tambahEdge("Sosial", "Agama", 2);
+  tambahEdge("Agama", "Filsafat", 3);
+}
+
+void reverseVector(vector<string> &vec)
+{
+  int n = vec.size();
+  for (int i = 0; i < n / 2; ++i)
+  {
+    string temp = vec[i];
+    vec[i] = vec[n - i - 1];
+    vec[n - i - 1] = temp;
+  }
+}
+vector<string> dijkstra(const string &start, const string &dest)
+{
+  unordered_map<string, int> dist;
+  unordered_map<string, string> prev;
+  priority_queue<pair<int, string>, vector<pair<int, string>>, greater<pair<int, string>>> pq;
+
+  // Inisialisasi jarak awal ke semua simpul menjadi infinity
+  for (const auto &rak : graph)
+  {
+    dist[rak.first] = INT_MAX;
+  }
+
+  dist[start] = 0;
+  pq.push(make_pair(0, start));
+
+  while (!pq.empty())
+  {
+    string current = pq.top().second;
+    int currentDist = pq.top().first;
+    pq.pop();
+
+    if (current == dest)
+      break;
+
+    // Iterasi semua tetangga dari simpul saat ini
+    for (const auto &neighbor : graph[current])
+    {
+      string next = neighbor.first;
+      int weight = neighbor.second;
+      int newDist = dist[current] + weight;
+
+      // Perbarui jarak jika ditemukan jarak yang lebih pendek
+      if (newDist < dist[next])
+      {
+        dist[next] = newDist;
+        prev[next] = current;
+        pq.push(make_pair(newDist, next));
+      }
+    }
+  }
+
+  // Rekonstruksi rute terpendek dari simpul tujuan ke simpul awal
+  vector<string> path;
+  string at = dest;
+  while (at != "")
+  {
+    path.push_back(at);
+    at = prev[at];
+  }
+  reverseVector(path);
+
+  return path;
+}
 int main()
 {
   Buku *root = nullptr;
@@ -666,6 +752,7 @@ int main()
         cout << "2. Cari Buku" << endl;
         cout << "3. Pinjam Buku" << endl;
         cout << "4. Kembalikan Buku" << endl;
+        cout << "5. Cari Lokasi Rak Buku" << endl;
         cout << "0. Keluar" << endl;
         cout << ">";
         cin >> pilihMenuUser;
@@ -706,6 +793,24 @@ int main()
           cin.ignore();
           getline(cin, judul);
           kembalikanBuku(judul);
+          break;
+        }
+        case 5 :
+        {
+          string start, dest;
+          start = "Pintu_Masuk";
+          cout << "Lokasi buku yang ingin dicari: ";
+          cin.ignore();
+          getline(cin, dest);
+          inisialisasiGraph();
+          vector<string> rute = dijkstra(start, dest);
+          denahPerpustakaan();
+          cout << "Rute terpendek dari " << start << " ke " << dest << ": ";
+          for (const auto &rak : rute)
+          {
+            cout << " -> " << rak ;
+          }
+          cout << endl;
           break;
         }
         default:
